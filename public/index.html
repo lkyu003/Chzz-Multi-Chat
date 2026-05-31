@@ -514,8 +514,8 @@
         add.disabled = exists;
         add.addEventListener("click", () => {
           addChannel(channel);
-          add.textContent = "추가됨";
-          add.disabled = true;
+          $("#results").replaceChildren();
+          setStatus();
         });
         row.append(profile(channel), copy, add);
         container.appendChild(row);
