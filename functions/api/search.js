@@ -1,21 +1,10 @@
 const CHZZK_SEARCH_URL = "https://api.chzzk.naver.com/service/v1/search/channels";
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/api/search") {
-      return searchChannels(url);
-    }
-
-    return env.ASSETS.fetch(request);
-  }
-};
-
-async function searchChannels(requestUrl) {
-  const keyword = (requestUrl.searchParams.get("keyword") || "").trim();
-  const offset = normalizeInteger(requestUrl.searchParams.get("offset"), 0, 0, 1000);
-  const size = normalizeInteger(requestUrl.searchParams.get("size"), 8, 1, 20);
+export async function onRequestGet({ request }) {
+  const url = new URL(request.url);
+  const keyword = (url.searchParams.get("keyword") || "").trim();
+  const offset = normalizeInteger(url.searchParams.get("offset"), 0, 0, 1000);
+  const size = normalizeInteger(url.searchParams.get("size"), 8, 1, 20);
 
   if (!keyword) {
     return json({ code: 400, message: "keyword is required" }, 400);
