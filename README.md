@@ -1,0 +1,35 @@
+# CHZZK Multi Chat
+
+여러 치지직 방송의 채팅창을 한 화면에서 모아 보는 Cloudflare Pages 앱입니다.
+
+## 기능
+
+- 스트리머 이름 검색 후 채널 추가
+- 채널 표시 여부 선택 및 드래그 순서 변경
+- 채팅창 너비, 높이, 확대 비율 조절
+- 개별 채팅 또는 전체 채팅 새로고침
+- 브라우저 `localStorage`에 채널 목록과 화면 설정 저장
+
+## Cloudflare Pages 배포
+
+이 앱은 치지직 검색 API의 브라우저 CORS 제한을 피하기 위해 Pages Function을 사용합니다.
+Cloudflare 대시보드의 정적 파일 직접 업로드 대신 Git 저장소를 연결해 배포하세요.
+
+Cloudflare Pages 프로젝트 설정:
+
+| 항목 | 값 |
+| --- | --- |
+| Framework preset | `None` |
+| Build command | 비워 두기 |
+| Build output directory | `public` |
+| Root directory | `/` |
+
+배포 후 `/api/search?keyword=냐미&offset=0&size=1` 주소가 JSON을 반환하면 정상입니다.
+
+## 로컬 개발
+
+Wrangler가 설치되어 있다면 다음 명령으로 정적 페이지와 Pages Function을 함께 실행할 수 있습니다.
+
+```bash
+npx wrangler pages dev public
+```

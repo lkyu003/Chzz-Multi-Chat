@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080d0f">
+  <title>CHZZK Multi Chat</title>
+  <style>
+    :root {
+      --bg: #080d0f;
+      --panel: #11191b;
+      --panel-strong: #182326;
+      --soft: rgba(0, 255, 163, 0.12);
+      --line: rgba(255, 255, 255, 0.09);
+      --green: #00ffa3;
+      --green-dark: #00d98b;
+      --text: #f5f8f7;
+      --muted: #91a19f;
+      --danger: #ff7777;
+      --sidebar: 360px;
+      --chat-width: 360;
+      --chat-height: 640;
+      --chat-scale: 1;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .sidebar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      width: var(--sidebar);
+      min-width: var(--sidebar);
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 16px 0 42px rgba(0, 0, 0, 0.2);
+      transition: margin-left 180ms ease;
+    }
+    .sidebar.collapsed { margin-left: calc(var(--sidebar) * -1); }
+    .sidebar-toggle {
+      position: absolute;
+      top: 18px;
+      right: -34px;
+      width: 34px;
+      height: 54px;
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-radius: 0 10px 10px 0;
+      background: var(--panel);
+      color: var(--green);
+      font-size: 20px;
+    }
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 19px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--green);
+      color: #05271c;
+      font-weight: 900;
+    }
+    h1 { margin: 0; font-size: 16px; letter-spacing: -0.03em; }
+    .subtitle { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .count {
+      min-width: 28px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 15px; }
+    .section { margin-bottom: 19px; }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+    .hint { font-size: 11px; font-weight: 500; letter-spacing: 0; }
+    .search-row, .manual-row { display: flex; gap: 7px; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      outline: none;
+      background: var(--panel-strong);
+      color: var(--text);
+    }
+    input:focus { border-color: rgba(0, 255, 163, 0.6); box-shadow: 0 0 0 3px var(--soft); }
+    input::placeholder { color: #71807f; }
+    .primary, .secondary, .icon {
+      border: 0;
+      border-radius: 9px;
+      transition: 130ms ease;
+    }
+    .primary {
+      flex: 0 0 68px;
+      background: var(--green);
+      color: #05271c;
+      font-weight: 900;
+    }
+    .primary:hover { background: var(--green-dark); }
+    .secondary {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid rgba(0, 255, 163, 0.35);
+      background: var(--soft);
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .icon {
+      display: grid;
+      width: 29px;
+      height: 29px;
+      flex: 0 0 29px;
+      place-items: center;
+      background: transparent;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .icon:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+    .danger:hover { color: var(--danger); }
+    .status { min-height: 19px; padding: 7px 2px 0; color: var(--muted); font-size: 12px; }
+    .status.error { color: var(--danger); }
+    .results, .channel-list { display: grid; gap: 7px; }
+    .result, .channel-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-strong);
+    }
+    .profile {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      place-items: center;
+      border-radius: 50%;
+      background: #223033;
+      color: var(--green);
+      object-fit: cover;
+      font-weight: 900;
+    }
+    .copy { min-width: 0; flex: 1; }
+    .name { overflow: hidden; font-size: 13px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+    .meta { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .live { color: #ff7070; }
+    .add {
+      padding: 7px 9px;
+      border: 1px solid rgba(0, 255, 163, 0.35);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .add:disabled { cursor: default; border-color: var(--line); background: transparent; color: var(--muted); }
+    details { margin-top: 8px; }
+    summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+    .manual-row { margin-top: 8px; }
+    .empty-list {
+      padding: 15px 8px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .channel-item { cursor: grab; }
+    .channel-item.dragging { opacity: 0.45; }
+    .handle { color: #687775; letter-spacing: -4px; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); }
+    .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+    .settings input { padding: 8px; font-size: 13px; }
+    .scale { margin-top: 11px; }
+    .scale-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .scale-value { color: var(--green); font-weight: 900; }
+    input[type="range"] { width: 100%; margin-top: 9px; accent-color: var(--green); }
+    .sidebar-footer { display: grid; gap: 7px; padding: 12px 15px 15px; border-top: 1px solid var(--line); }
+    .reset { border: 0; background: transparent; color: var(--muted); font-size: 11px; }
+
+    .chats {
+      display: grid;
+      flex: 1;
+      grid-auto-rows: calc(var(--chat-height) * 1px);
+      grid-template-columns: repeat(auto-fit, minmax(min(calc(var(--chat-width) * 1px), 100%), 1fr));
+      align-content: start;
+      gap: 14px;
+      overflow-y: auto;
+      padding: 15px;
+      background: radial-gradient(circle at top right, rgba(0, 255, 163, 0.07), transparent 32%), var(--bg);
+    }
+    .chat {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #0a1012;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+    }
+    .chat-header {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 8px 6px 11px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .chat-header .name { color: var(--green); }
+    .chat-actions { display: flex; gap: 2px; }
+    iframe {
+      width: calc(100% / var(--chat-scale));
+      height: calc(100% / var(--chat-scale));
+      flex: 1 0 calc(100% / var(--chat-scale));
+      border: 0;
+      background: #0e1517;
+      transform: scale(var(--chat-scale));
+      transform-origin: top left;
+    }
+    .empty-state {
+      display: grid;
+      min-height: calc(100vh - 30px);
+      place-items: center;
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .empty-state strong { display: block; margin-bottom: 8px; color: var(--text); font-size: 18px; }
+    ::-webkit-scrollbar { width: 7px; }
+    ::-webkit-scrollbar-thumb { border-radius: 999px; background: #354341; }
+    @media (max-width: 720px) {
+      :root { --sidebar: min(88vw, 360px); }
+      .chats { gap: 10px; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="설정 패널 접기">‹</button>
+    <header class="sidebar-header">
+      <div class="brand">
+        <div class="logo">C</div>
+        <div>
+          <h1>CHZZK Multi Chat</h1>
+          <div class="subtitle">합방용 채팅 모아보기</div>
+        </div>
+      </div>
+      <div class="count" id="count" title="표시 중인 채팅창 수">0</div>
+    </header>
+
+    <div class="sidebar-scroll">
+      <section class="section">
+        <h2 class="section-title">스트리머 추가 <span class="hint">이름으로 검색</span></h2>
+        <div class="search-row">
+          <input id="search-input" type="text" placeholder="예: 냐미" autocomplete="off">
+          <button class="primary" id="search-button" type="button">검색</button>
+        </div>
+        <div class="status" id="status" aria-live="polite"></div>
+        <div class="results" id="results"></div>
+        <details>
+          <summary>채널 ID로 직접 추가</summary>
+          <div class="manual-row">
+            <input id="manual-input" type="text" placeholder="채널 ID 붙여넣기">
+            <button class="primary" id="manual-button" type="button">추가</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">추가한 채널 <span class="hint">끌어서 순서 변경</span></h2>
+        <div class="channel-list" id="channel-list"></div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">채팅창 크기</h2>
+        <div class="settings">
+          <div>
+            <label for="width-input">최소 너비</label>
+            <input id="width-input" type="number" min="240" max="900" step="10">
+          </div>
+          <div>
+            <label for="height-input">높이</label>
+            <input id="height-input" type="number" min="320" max="1200" step="10">
+          </div>
+        </div>
+        <div class="scale">
+          <div class="scale-label"><span>채팅 확대</span><span class="scale-value" id="scale-value">100%</span></div>
+          <input id="scale-input" type="range" min="0.8" max="1.5" step="0.1">
+        </div>
+      </section>
+    </div>
+
+    <footer class="sidebar-footer">
+      <button class="secondary" id="refresh-all" type="button">전체 채팅 새로고침</button>
+      <button class="reset" id="reset" type="button">저장된 설정 초기화</button>
+    </footer>
+  </aside>
+  <main class="chats" id="chats"></main>
+
+  <script>
+    const CHANNELS_KEY = "chzzk_multi_chat_channels";
+    const CONFIG_KEY = "chzzk_multi_chat_config";
+    const DEFAULT_CONFIG = { width: 360, height: 640, scale: 1 };
+    const $ = (selector) => document.querySelector(selector);
+    let channels = load(CHANNELS_KEY, []);
+    let config = { ...DEFAULT_CONFIG, ...load(CONFIG_KEY, {}) };
+    let dragIndex = null;
+
+    function load(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+      catch { return fallback; }
+    }
+
+    function saveChannels() { localStorage.setItem(CHANNELS_KEY, JSON.stringify(channels)); }
+    function saveConfig() { localStorage.setItem(CONFIG_KEY, JSON.stringify(config)); }
+    function clamp(value, min, max, fallback) {
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+    }
+    function followers(value) { return new Intl.NumberFormat("ko-KR").format(Number(value) || 0) + "명"; }
+    function setStatus(message = "", error = false) {
+      $("#status").textContent = message;
+      $("#status").classList.toggle("error", error);
+    }
+    function button(text, className, title, listener) {
+      const element = document.createElement("button");
+      element.type = "button";
+      element.textContent = text;
+      element.className = className;
+      if (title) element.title = title;
+      if (listener) element.addEventListener("click", listener);
+      return element;
+    }
+    function profile(channel) {
+      if (channel.image) {
+        const image = document.createElement("img");
+        image.src = channel.image;
+        image.alt = "";
+        image.loading = "lazy";
+        image.className = "profile";
+        return image;
+      }
+      const fallback = document.createElement("div");
+      fallback.className = "profile";
+      fallback.textContent = (channel.name || "?").slice(0, 1);
+      return fallback;
+    }
+
+    async function search() {
+      const keyword = $("#search-input").value.trim();
+      if (!keyword) {
+        setStatus("검색할 스트리머 이름을 입력해 주세요.", true);
+        $("#search-input").focus();
+        return;
+      }
+      setStatus("검색 중...");
+      $("#results").replaceChildren();
+      $("#search-button").disabled = true;
+      try {
+        const response = await fetch(`/api/search?keyword=${encodeURIComponent(keyword)}&offset=0&size=8`);
+        if (!response.ok) throw new Error("search failed");
+        const payload = await response.json();
+        const results = (payload.content?.data || []).map(({ channel }) => ({
+          id: channel.channelId,
+          name: channel.channelName,
+          image: channel.channelImageUrl || "",
+          followers: channel.followerCount || 0,
+          live: Boolean(channel.openLive),
+          selected: true
+        }));
+        renderResults(results);
+        setStatus(results.length ? `${results.length}개의 채널을 찾았습니다.` : "검색 결과가 없습니다.");
+      } catch {
+        setStatus("검색에 실패했습니다. 잠시 후 다시 시도해 주세요.", true);
+      } finally {
+        $("#search-button").disabled = false;
+      }
+    }
+
+    function renderResults(results) {
+      const container = $("#results");
+      container.replaceChildren();
+      results.forEach((channel) => {
+        const row = document.createElement("div");
+        row.className = "result";
+        const copy = document.createElement("div");
+        copy.className = "copy";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = channel.name;
+        const meta = document.createElement("div");
+        meta.className = channel.live ? "meta live" : "meta";
+        meta.textContent = `${channel.live ? "● LIVE · " : ""}팔로워 ${followers(channel.followers)}`;
+        copy.append(name, meta);
+        const exists = channels.some((saved) => saved.id === channel.id);
+        const add = button(exists ? "추가됨" : "추가", "add");
+        add.disabled = exists;
+        add.addEventListener("click", () => {
+          addChannel(channel);
+          add.textContent = "추가됨";
+          add.disabled = true;
+        });
+        row.append(profile(channel), copy, add);
+        container.appendChild(row);
+      });
+    }
+
+    function addChannel(channel) {
+      if (!channel.id || channels.some((saved) => saved.id === channel.id)) return;
+      channels.push({ id: channel.id, name: channel.name || "직접 추가한 채널", image: channel.image || "", selected: true });
+      saveChannels();
+      renderChannelList();
+      renderChats();
+    }
+
+    function removeChannel(index) {
+      channels.splice(index, 1);
+      saveChannels();
+      renderChannelList();
+      renderChats();
+    }
+
+    function renderChannelList() {
+      const list = $("#channel-list");
+      list.replaceChildren();
+      if (!channels.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent = "위 검색창에서 스트리머를 찾아 추가해 주세요.";
+        list.appendChild(empty);
+        return;
+      }
+      channels.forEach((channel, index) => {
+        const item = document.createElement("div");
+        item.className = "channel-item";
+        item.draggable = true;
+        item.addEventListener("dragstart", () => { dragIndex = index; item.classList.add("dragging"); });
+        item.addEventListener("dragend", () => item.classList.remove("dragging"));
+        item.addEventListener("dragover", (event) => event.preventDefault());
+        item.addEventListener("drop", () => {
+          if (dragIndex === null || dragIndex === index) return;
+          const [moved] = channels.splice(dragIndex, 1);
+          channels.splice(index, 0, moved);
+          dragIndex = null;
+          saveChannels();
+          renderChannelList();
+          renderChats();
+        });
+        const handle = document.createElement("span");
+        handle.className = "handle";
+        handle.textContent = "⠿";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = channel.selected !== false;
+        checkbox.title = "채팅창 표시";
+        checkbox.addEventListener("change", () => {
+          channel.selected = checkbox.checked;
+          saveChannels();
+          renderChats();
+        });
+        const copy = document.createElement("div");
+        copy.className = "copy";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = channel.name;
+        copy.appendChild(name);
+        item.append(handle, checkbox, copy, button("×", "icon danger", "채널 삭제", () => removeChannel(index)));
+        list.appendChild(item);
+      });
+    }
+
+    function renderChats() {
+      const selected = channels.filter((channel) => channel.selected !== false);
+      const chats = $("#chats");
+      chats.replaceChildren();
+      $("#count").textContent = selected.length;
+      if (!selected.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.innerHTML = "<div><strong>표시할 채팅창이 없습니다</strong><span>왼쪽에서 스트리머를 검색해 추가하거나<br>추가한 채널의 체크박스를 켜 주세요.</span></div>";
+        chats.appendChild(empty);
+        return;
+      }
+      selected.forEach((channel) => {
+        const wrapper = document.createElement("section");
+        wrapper.className = "chat";
+        const header = document.createElement("header");
+        header.className = "chat-header";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = channel.name;
+        const actions = document.createElement("div");
+        actions.className = "chat-actions";
+        const open = document.createElement("a");
+        open.className = "icon";
+        open.href = `https://chzzk.naver.com/live/${encodeURIComponent(channel.id)}`;
+        open.target = "_blank";
+        open.rel = "noopener noreferrer";
+        open.title = "방송 페이지 열기";
+        open.textContent = "↗";
+        const frame = document.createElement("iframe");
+        frame.src = `https://chzzk.naver.com/live/${encodeURIComponent(channel.id)}/chat`;
+        frame.title = `${channel.name} 채팅`;
+        frame.allow = "clipboard-write";
+        actions.append(open, button("↻", "icon", "이 채팅만 새로고침", () => { frame.src = frame.src; }));
+        header.append(name, actions);
+        wrapper.append(header, frame);
+        chats.appendChild(wrapper);
+      });
+    }
+
+    function updateConfig() {
+      config.width = clamp($("#width-input").value, 240, 900, DEFAULT_CONFIG.width);
+      config.height = clamp($("#height-input").value, 320, 1200, DEFAULT_CONFIG.height);
+      config.scale = clamp($("#scale-input").value, 0.8, 1.5, DEFAULT_CONFIG.scale);
+      document.documentElement.style.setProperty("--chat-width", config.width);
+      document.documentElement.style.setProperty("--chat-height", config.height);
+      document.documentElement.style.setProperty("--chat-scale", config.scale);
+      $("#scale-value").textContent = `${Math.round(config.scale * 100)}%`;
+      saveConfig();
+    }
+
+    function init() {
+      $("#width-input").value = config.width;
+      $("#height-input").value = config.height;
+      $("#scale-input").value = config.scale;
+      updateConfig();
+      renderChannelList();
+      renderChats();
+      $("#search-button").addEventListener("click", search);
+      $("#search-input").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); });
+      $("#manual-button").addEventListener("click", () => {
+        const input = $("#manual-input");
+        addChannel({ id: input.value.trim() });
+        input.value = "";
+      });
+      $("#width-input").addEventListener("input", updateConfig);
+      $("#height-input").addEventListener("input", updateConfig);
+      $("#scale-input").addEventListener("input", updateConfig);
+      $("#refresh-all").addEventListener("click", renderChats);
+      $("#reset").addEventListener("click", () => {
+        if (!confirm("추가한 채널과 화면 설정을 모두 초기화할까요?")) return;
+        localStorage.removeItem(CHANNELS_KEY);
+        localStorage.removeItem(CONFIG_KEY);
+        location.reload();
+      });
+      $("#sidebar-toggle").addEventListener("click", () => {
+        const collapsed = $("#sidebar").classList.toggle("collapsed");
+        $("#sidebar-toggle").textContent = collapsed ? "›" : "‹";
+        $("#sidebar-toggle").setAttribute("aria-label", collapsed ? "설정 패널 펼치기" : "설정 패널 접기");
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

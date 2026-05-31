@@ -1,0 +1,52 @@
+const CHZZK_SEARCH_URL = "https://api.chzzk.naver.com/service/v1/search/channels";
+
+export async function onRequestGet({ request }) {
+  const url = new URL(request.url);
+  const keyword = (url.searchParams.get("keyword") || "").trim();
+  const offset = normalizeInteger(url.searchParams.get("offset"), 0, 0, 1000);
+  const size = normalizeInteger(url.searchParams.get("size"), 8, 1, 20);
+
+  if (!keyword) {
+    return json({ code: 400, message: "keyword is required" }, 400);
+  }
+
+  const upstream = new URL(CHZZK_SEARCH_URL);
+  upstream.searchParams.set("keyword", keyword);
+  upstream.searchParams.set("offset", String(offset));
+  upstream.searchParams.set("size", String(size));
+
+  try {
+    const response = await fetch(upstream, {
+      headers: {
+        Accept: "application/json",
+        Referer: "https://chzzk.naver.com/",
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    if (!response.ok) {
+      return json({ code: response.status, message: "CHZZK search request failed" }, 502);
+    }
+
+    return new Response(response.body, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=30"
+      }
+    });
+  } catch {
+    return json({ code: 502, message: "CHZZK search request failed" }, 502);
+  }
+}
+
+function normalizeInteger(value, fallback, min, max) {
+  const number = Number.parseInt(value, 10);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+function json(body, status) {
+  return Response.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" }
+  });
+}
