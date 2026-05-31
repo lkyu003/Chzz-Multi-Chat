@@ -667,10 +667,15 @@
       sidebarCloseTimer = setTimeout(() => {
         const sidebar = $("#sidebar");
         if (sidebar.matches(":hover") || sidebar.contains(document.activeElement)) return;
-        sidebar.classList.add("collapsed");
-        $("#sidebar-toggle").textContent = "›";
-        $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 펼치기");
+        closeSidebar();
       }, 420);
+    }
+
+    function closeSidebar() {
+      clearTimeout(sidebarCloseTimer);
+      $("#sidebar").classList.add("collapsed");
+      $("#sidebar-toggle").textContent = "›";
+      $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 펼치기");
     }
 
     function startChatResize(event) {
@@ -747,6 +752,10 @@
       $("#sidebar").addEventListener("mouseleave", closeSidebarSoon);
       $("#sidebar").addEventListener("focusin", openSidebar);
       $("#sidebar").addEventListener("focusout", closeSidebarSoon);
+      document.addEventListener("mouseout", (event) => {
+        if (!event.relatedTarget) closeSidebar();
+      });
+      window.addEventListener("blur", closeSidebar);
       applyTheme(config.theme);
       $("#sidebar-toggle").textContent = "›";
       $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 펼치기");
