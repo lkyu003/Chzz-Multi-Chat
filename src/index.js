@@ -1,10 +1,21 @@
 const CHZZK_SEARCH_URL = "https://api.chzzk.naver.com/service/v1/search/channels";
 
-export async function onRequestGet({ request }) {
-  const url = new URL(request.url);
-  const keyword = (url.searchParams.get("keyword") || "").trim();
-  const offset = normalizeInteger(url.searchParams.get("offset"), 0, 0, 1000);
-  const size = normalizeInteger(url.searchParams.get("size"), 8, 1, 20);
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/api/search") {
+      return searchChannels(url);
+    }
+
+    return env.ASSETS.fetch(request);
+  }
+};
+
+async function searchChannels(requestUrl) {
+  const keyword = (requestUrl.searchParams.get("keyword") || "").trim();
+  const offset = normalizeInteger(requestUrl.searchParams.get("offset"), 0, 0, 1000);
+  const size = normalizeInteger(requestUrl.searchParams.get("size"), 8, 1, 20);
 
   if (!keyword) {
     return json({ code: 400, message: "keyword is required" }, 400);
@@ -19,13 +30,14 @@ export async function onRequestGet({ request }) {
     const response = await fetch(upstream, {
       headers: {
         Accept: "application/json",
-        Referer: "https://chzzk.naver.com/",
-        "User-Agent": "Mozilla/5.0"
-      }
+        Origin: "https://chzzk.naver.com",
+        Referer: "https://chzzk.naver.com/"
+      },
+      signal: AbortSignal.timeout(8000)
     });
 
     if (!response.ok) {
-      return json({ code: response.status, message: "CHZZK search request failed" }, 502);
+      return json({ code: response.status, message: "CHZZK upstream rejected the search request" }, 502);
     }
 
     return new Response(response.body, {
@@ -34,8 +46,11 @@ export async function onRequestGet({ request }) {
         "Cache-Control": "public, max-age=30"
       }
     });
-  } catch {
-    return json({ code: 502, message: "CHZZK search request failed" }, 502);
+  } catch (error) {
+    return json({
+      code: 502,
+      message: error?.name === "TimeoutError" ? "CHZZK search request timed out" : "CHZZK search request failed"
+    }, 502);
   }
 }
 
