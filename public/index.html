@@ -68,6 +68,14 @@
       transition: margin-left 180ms ease;
     }
     .sidebar.collapsed { margin-left: calc(var(--sidebar) * -1); }
+    .sidebar-hotspot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 3;
+      width: 16px;
+      height: 100vh;
+    }
     .sidebar-toggle {
       position: absolute;
       top: 18px;
@@ -332,7 +340,8 @@
   </style>
 </head>
 <body>
-  <aside class="sidebar" id="sidebar">
+  <div class="sidebar-hotspot" id="sidebar-hotspot" aria-hidden="true"></div>
+  <aside class="sidebar collapsed" id="sidebar">
     <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="설정 패널 접기">‹</button>
     <header class="sidebar-header">
       <div class="brand">
@@ -411,6 +420,7 @@
     let channels = load(CHANNELS_KEY, []);
     let config = { ...DEFAULT_CONFIG, ...load(CONFIG_KEY, {}) };
     let dragIndex = null;
+    let sidebarCloseTimer = null;
 
     function load(key, fallback) {
       try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
@@ -645,6 +655,24 @@
       saveConfig();
     }
 
+    function openSidebar() {
+      clearTimeout(sidebarCloseTimer);
+      $("#sidebar").classList.remove("collapsed");
+      $("#sidebar-toggle").textContent = "‹";
+      $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 접기");
+    }
+
+    function closeSidebarSoon() {
+      clearTimeout(sidebarCloseTimer);
+      sidebarCloseTimer = setTimeout(() => {
+        const sidebar = $("#sidebar");
+        if (sidebar.matches(":hover") || sidebar.contains(document.activeElement)) return;
+        sidebar.classList.add("collapsed");
+        $("#sidebar-toggle").textContent = "›";
+        $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 펼치기");
+      }, 420);
+    }
+
     function startChatResize(event) {
       event.preventDefault();
       const handle = event.currentTarget;
@@ -714,7 +742,14 @@
         $("#sidebar-toggle").textContent = collapsed ? "›" : "‹";
         $("#sidebar-toggle").setAttribute("aria-label", collapsed ? "설정 패널 펼치기" : "설정 패널 접기");
       });
+      $("#sidebar-hotspot").addEventListener("mouseenter", openSidebar);
+      $("#sidebar").addEventListener("mouseenter", openSidebar);
+      $("#sidebar").addEventListener("mouseleave", closeSidebarSoon);
+      $("#sidebar").addEventListener("focusin", openSidebar);
+      $("#sidebar").addEventListener("focusout", closeSidebarSoon);
       applyTheme(config.theme);
+      $("#sidebar-toggle").textContent = "›";
+      $("#sidebar-toggle").setAttribute("aria-label", "설정 패널 펼치기");
     }
 
     init();
