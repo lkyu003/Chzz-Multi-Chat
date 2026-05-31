@@ -28,6 +28,8 @@ Cloudflare Pages 프로젝트 설정:
 | Build output directory | `public` |
 | Root directory | 비워 두기 |
 
+저장소의 `wrangler.jsonc`에도 Pages 정적 출력 폴더를 `./public`으로 명시했습니다.
+
 배포 후 `/api/search?keyword=냐미&offset=0&size=1` 주소가 JSON을 반환하면 정상입니다.
 
 ## 로컬 개발
